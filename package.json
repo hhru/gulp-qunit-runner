@@ -1,6 +1,6 @@
 {
   "name": "@hh.ru/gulp-qunit-runner",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "run qunit tests with gulp",
   "main": "gulp-qunit-runner.js",
   "repository": {
