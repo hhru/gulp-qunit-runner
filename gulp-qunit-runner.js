@@ -5,7 +5,7 @@ var childProcess = require('child_process');
 var gutil = require('gulp-util');
 var chalk = require('chalk');
 var through = require('through2');
-var phantomjs = require('phantomjs');
+var phantomjs = require('phantomjs-prebuilt');
 var binPath = phantomjs.path;
 
 module.exports = function(params) {
