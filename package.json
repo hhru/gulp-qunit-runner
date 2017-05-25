@@ -1,6 +1,6 @@
 {
   "name": "@hh.ru/gulp-qunit-runner",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "run qunit tests with gulp",
   "main": "gulp-qunit-runner.js",
   "repository": {
@@ -29,6 +29,6 @@
     "gulp-eslint": "^1.1.1",
     "gulp-mocha": "^2.0.0",
     "mocha": "*",
-    "qunitjs": "^1.15.0"
+    "qunitjs": "^2.3.2"
   }
 }
