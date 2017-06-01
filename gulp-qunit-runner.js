@@ -1,35 +1,30 @@
-'use strict';
+const path = require('path');
+const childProcess = require('child_process');
+const gutil = require('gulp-util');
+const phantomjs = require('phantomjs-prebuilt');
+const EventEmitter = require('events');
+const readline = require('readline');
+let binPath = phantomjs.path;
+const runnerPath = require.resolve('./runner');
 
-var path = require('path');
-var childProcess = require('child_process');
-var gutil = require('gulp-util');
-var phantomjs = require('phantomjs-prebuilt');
-var binPath = phantomjs.path;
-var EventEmitter = require('events');
-var readline = require('readline');
 
+module.exports = function(testPaths, params = {}) {
+    const emitter = new EventEmitter();
+    const childArgs = [];
 
-module.exports = function(testPaths, params) {
-    var options = params || {};
-    var emitter = new EventEmitter();
-    var hasError = false;
-    var childArgs = [];
+    binPath = params.binPath || binPath;
 
-    binPath = options.binPath || binPath;
-
-    if (options.phantomjsOptions && options.phantomjsOptions.length) {
-        childArgs.push(options.phantomjsOptions);
+    if (params.phantomjsOptions && params.phantomjsOptions.length) {
+        childArgs.push(params.phantomjsOptions);
     }
 
-    childArgs.push(require.resolve('./runner'));
+    childArgs.push(runnerPath);
 
-    if (options.suitTimeoutSeconds) {
-        childArgs.push(options.suitTimeoutSeconds);
+    if (params.suitTimeoutSeconds) {
+        childArgs.push(params.suitTimeoutSeconds);
     }
 
-    childArgs = childArgs.concat(testPaths);
-
-    var phantom = childProcess.execFile(binPath, childArgs);
+    const phantom = childProcess.execFile(binPath, childArgs.concat(testPaths));
 
     readline.createInterface({
         input: phantom.stdout,
@@ -42,14 +37,11 @@ module.exports = function(testPaths, params) {
         input: phantom.stderr,
         output: null
     }).on('line', function(result) {
-        hasError = true;
         emitter.emit('error', result);
     });
 
     phantom.on('close', function() {
-        if (!hasError) {
-            emitter.emit('close');
-        }
+        emitter.emit('close');
     })
 
     return emitter;

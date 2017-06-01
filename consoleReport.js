@@ -1,39 +1,29 @@
-var gutil = require('gulp-util');
-var chalk = require('chalk');
+const gutil = require('gulp-util');
+const chalk = require('chalk');
 
 module.exports = function(result) {
-    'use strict';
+    if (!result || !result.includes('{')) {
+        return
+    }
 
-    var passed = true;
-    var out;
-    var stats;
-    var color;
+    try {
+        const out = JSON.parse(result);
+        if (out.data.assertsFailed) {
+            gutil.log(`${chalk.red('✖')} QUnit assertions failed in ${chalk.blue(out.file)}`);
+            gutil.log(`${chalk.red(out.data.assertsFailed)}`);
 
-    if (result) {
-        try {
-            if (result.indexOf('{') !== -1) {
-                out = JSON.parse(result);
-
-                stats = out.data.stats;
-
-                color = stats.failures > 0 ? chalk.red : chalk.green;
-
-                gutil.log('Took ' + stats.duration + ' ms to run ' + chalk.blue(stats.tests) + ' tests. ' + color(stats.passes + ' passed, ' + stats.failures + ' failed.'));
-
-                if (stats.failures > 0) {
-                    gutil.log('gulp-qunit: ' + chalk.red('✖ ') + 'QUnit assertions failed in ' + chalk.blue(out.file));
-                } else {
-                    gutil.log('gulp-qunit: ' + chalk.green('✔ ') + 'QUnit assertions all passed in ' + chalk.blue(out.file));
-                }
-
-                if (out.data.failures) {
-                    out.data.failures.forEach(function(item) {
-                        gutil.log(chalk.red('Test failed') + ': ' + chalk.red(item.fullTitle) + ': \n' + item.error);
-                    });
-                }
-            }
-        } catch (e) {
-            gutil.log(chalk.red(e));
+            return;
         }
+
+        const stats = out.data.stats;
+        const color = stats.failures > 0 ? chalk.red : chalk.green;
+
+        if (stats.failures === 0) {
+            gutil.log(`${chalk.green('✔ ')} QUnit assertions all passed in ${chalk.blue(out.file)}`);
+        }
+
+        gutil.log(`Took ${stats.duration} ms to run ${chalk.blue(stats.tests)} tests. ${color(stats.passes)} passed, ${stats.failures} failed.\n`);
+    } catch (e) {
+        gutil.log(chalk.red(e));
     }
 };

@@ -1,57 +1,61 @@
 /*global phantom:false, require:false, console:false, window:false, QUnit:false */
+/*
+ * This file is ment to be executed with PhantomJS directly so it must use ES5 syntax only
+ */
 
-(function () {
+(function() {
     'use strict';
-    var url, page, timeout, abortTimer;
-    var args = require('system').args;
+    var url;
+    var page;
+    var timeout;
+    var abortTimer;
+    var system = require('system');
+    var args = system.args;
+    var DEFAULT_TIMEOUT_SECONDS = 5;
 
     // arg[0]: scriptName, args[1...]: arguments
     if (args.length < 2) {
-        console.error('Usage:\n  phantomjs [phantom arguments] runner.js [timeout-in-seconds] [[url-of-your-qunit-testsuite]...]');
+        console.error('Usage:\n  phantomjs [phantom arguments] runner.js [timeout-in-seconds] <url-of-your-qunit-testsuite> [<url-of-your-qunit-testsuite>...]');
         exit(1);
     }
 
     // small hack to redirect errors to stderr instead of stdout
-    console.error = function () {
-        require("system").stderr.write(Array.prototype.join.call(arguments, ' ') + '\n');
+    console.error = function() {
+        system.stderr.write(Array.prototype.join.call(arguments, ' ') + '\n');
     };
 
     page = require('webpage').create();
 
     // this function will be executed inside phantomjs js-vm, so it mustn't depends on any entities from outer scope
     function addLogging() {
-        window.document.addEventListener('DOMContentLoaded', function () {
+        window.document.addEventListener('DOMContentLoaded', function() {
             var currentTestAssertions = [];
 
-            QUnit.log(function (details) {
+            QUnit.log(function(details) {
                 var response;
 
                 // Ignore passing assertions
-                if (details.result) {
+                if (details.result){
                     return;
                 }
 
-                response = details.message || '';
+                response = details.message ? details.message + ', ' : '';
 
-                if (typeof details.expected !== 'undefined') {
-                    if (response) {
-                        response += ', ';
-                    }
-
+                if (details.expected) {
                     response += 'expected: ' + details.expected + ', but was: ' + details.actual;
                 }
 
                 if (details.source) {
-                    response += '\n' + details.source;
+                    response += '\n\t' + details.source.split('\n')[0];
                 }
 
                 currentTestAssertions.push('Failed assertion: ' + response);
             });
 
-            QUnit.testDone(function (result) {
-                var i,
-                    len,
-                    name = '';
+            QUnit.testDone(function(result) {
+                var i;
+                var len;
+                var name = '';
 
                 if (result.module) {
                     name += result.module + ': ';
@@ -60,18 +64,18 @@
 
                 text = '';
                 if (result.failed) {
-                    text += '\n' + 'Test failed: ' + name;
+                    text += name;
 
                     for (i = 0, len = currentTestAssertions.length; i < len; i++) {
-                        text += '\t' + currentTestAssertions[i];
+                        text += '\n\t' + currentTestAssertions[i];
                     }
-                    console.log(text);
+                    console.log(JSON.stringify({"assertsFailed": text}));
                 }
 
                 currentTestAssertions.length = 0;
             });
 
-            QUnit.done(function (result) {
+            QUnit.done(function(result) {
                 if (typeof window.callPhantom === 'function') {
                     window.callPhantom({
                         'name': 'QUnit.done',
@@ -85,11 +89,11 @@
     function open(url) {
         // Set a default timeout value if the user does not provide one
         if (typeof timeout === 'undefined') {
-            timeout = 5;
+            timeout = DEFAULT_TIMEOUT_SECONDS;
         }
 
         // Set a timeout on the test running, otherwise tests with async problems will hang forever
-        abortTimer = setTimeout(function () {
+        abortTimer = setTimeout(function() {
             console.error('The specified timeout of ' + timeout + ' seconds has expired while running tests on ' + getSuitName(url));
             exit(1);
         }, timeout * 1000);
@@ -101,7 +105,7 @@
         if (page) {
             page.close();
         }
-        setTimeout(function () {
+        setTimeout(function() {
             phantom.exit(code);
         }, 0);
     }
@@ -113,7 +117,7 @@
         } else {
             // Cannot do this verification with the 'DOMContentLoaded' handler because it
             // will be too late to attach it if a page does not have any script tags.
-            var qunitMissing = page.evaluate(function () {
+            var qunitMissing = page.evaluate(function() {
                 return (typeof QUnit === 'undefined' || !QUnit);
             });
             if (qunitMissing) {
@@ -140,23 +144,21 @@
         var result;
         var failed;
 
-        if (message) {
-            if (message.name === 'QUnit.done') {
-                result = message.data;
-                failed = !result || !result.total || result.failed;
+        if (message && message.name === 'QUnit.done') {
+            result = message.data;
+            failed = !result || !result.total || result.failed;
 
-                if (!result.total) {
-                    console.error('No tests were executed. Are you loading tests asynchronously?');
-                }
-
-                if (args.length === 0) {
-                    exit(0);
-                }
-
-                clearTimeout(abortTimer);
-                // open next page with test suite
-                open(args.shift())
+            if (!result.total) {
+                console.error('No tests were executed. Are you loading tests asynchronously?');
             }
+
+            if (args.length === 0) {
+                exit(0);
+            }
+
+            clearTimeout(abortTimer);
+            // open next page with test suite
+            open(args.shift())
         }
     };
 
