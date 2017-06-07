@@ -1,57 +1,48 @@
-'use strict';
+const path = require('path');
+const childProcess = require('child_process');
+const gutil = require('gulp-util');
+const phantomjs = require('phantomjs-prebuilt');
+const EventEmitter = require('events');
+const readline = require('readline');
+let binPath = phantomjs.path;
+const runnerPath = require.resolve('./runner');
 
-var path = require('path');
-var childProcess = require('child_process');
-var gutil = require('gulp-util');
-var chalk = require('chalk');
-var through = require('through2');
-var phantomjs = require('phantomjs-prebuilt');
-var binPath = phantomjs.path;
 
-module.exports = function(params) {
-    var options = params || {};
+module.exports = function(testPaths, params = {}) {
+    const emitter = new EventEmitter();
+    const childArgs = [];
 
-    binPath = options.binPath || binPath;
+    binPath = params.binPath || binPath;
 
-    return through.obj(function(file, enc, cb) {
-        var absolutePath = path.resolve(file.path);
-        var isAbsolutePath = absolutePath.indexOf(file.path) >= 0;
-        var childArgs = [];
+    if (params.phantomjsOptions && params.phantomjsOptions.length) {
+        childArgs.push(params.phantomjsOptions);
+    }
 
-        if (options['phantomjs-options'] && options['phantomjs-options'].length) {
-            childArgs.push(options['phantomjs-options']);
-        }
+    childArgs.push(runnerPath);
 
-        childArgs.push(
-            require.resolve('qunit-phantomjs-runner'),
-            (isAbsolutePath ? 'file:///' + absolutePath.replace(/\\/g, '/') : file.path)
-        );
+    if (params.suitTimeoutSeconds) {
+        childArgs.push(params.suitTimeoutSeconds);
+    }
 
-        if (options.timeout) {
-            childArgs.push(options.timeout);
-        }
+    const phantom = childProcess.execFile(binPath, childArgs.concat(testPaths));
 
-        if (file.isStream()) {
-            this.emit('error', new gutil.PluginError('gulp-qunit', 'Streaming not supported'));
-            return cb();
-        }
-
-        childProcess.execFile(binPath, childArgs, function(err, stdout, stderr) {
-
-            if (stderr) {
-                gutil.log(stderr);
-                this.emit('error', new gutil.PluginError('gulp-qunit', stderr));
-            }
-
-            this.emit('gulp-qunit-result', err, stdout, file);
-            if (err) {
-                this.emit('error', new gutil.PluginError('gulp-qunit-runner', err));
-            }
-
-            this.push(file);
-
-            return cb();
-
-        }.bind(this));
+    readline.createInterface({
+        input: phantom.stdout,
+        output: null
+    }).on('line', function(result) {
+        emitter.emit('gulp-qunit-result', result);
     });
+
+    readline.createInterface({
+        input: phantom.stderr,
+        output: null
+    }).on('line', function(result) {
+        emitter.emit('error', result);
+    });
+
+    phantom.on('close', function() {
+        emitter.emit('close');
+    })
+
+    return emitter;
 };
