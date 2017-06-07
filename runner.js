@@ -13,16 +13,16 @@
     var args = system.args;
     var DEFAULT_TIMEOUT_SECONDS = 5;
 
+    // small hack to redirect errors to stderr instead of stdout
+    console.error = function() {
+        system.stderr.write(Array.prototype.join.call(arguments, ' ') + '\n');
+    };
+
     // arg[0]: scriptName, args[1...]: arguments
     if (args.length < 2) {
         console.error('Usage:\n  phantomjs [phantom arguments] runner.js [timeout-in-seconds] <url-of-your-qunit-testsuite> [<url-of-your-qunit-testsuite>...]');
         exit(1);
     }
-
-    // small hack to redirect errors to stderr instead of stdout
-    console.error = function() {
-        system.stderr.write(Array.prototype.join.call(arguments, ' ') + '\n');
-    };
 
     page = require('webpage').create();
 
@@ -150,6 +150,11 @@
 
             if (!result.total) {
                 console.error('No tests were executed. Are you loading tests asynchronously?');
+                exit(1);
+            }
+
+            if (failed) {
+                console.error('some tests were failed in '+ getSuitName(page.url));
             }
 
             if (args.length === 0) {
