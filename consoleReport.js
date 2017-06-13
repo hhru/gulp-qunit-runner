@@ -1,7 +1,7 @@
 const gutil = require('gulp-util');
 const chalk = require('chalk');
 
-module.exports = function(result) {
+module.exports = function(result, verbose) {
     if (!result || !result.includes('{')) {
         return
     }
@@ -12,6 +12,11 @@ module.exports = function(result) {
             gutil.log(`${chalk.red('✖')} QUnit assertions failed in ${chalk.blue(out.file)}`);
             gutil.log(`${chalk.red(out.data.assertsFailed)}`);
 
+            return;
+        }
+
+        if (!verbose) {
+            // if we are not in verbose mode then no further logging is needed
             return;
         }
 
