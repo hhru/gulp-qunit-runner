@@ -7,6 +7,8 @@ const readline = require('readline');
 let binPath = phantomjs.path;
 const runnerPath = require.resolve('./runner');
 
+const KILOBYTE = 1024;
+const DEFAULT_BUFFER_SIZE = 200;
 
 module.exports = function(testPaths, params = {}) {
     const emitter = new EventEmitter();
@@ -24,7 +26,16 @@ module.exports = function(testPaths, params = {}) {
         childArgs.push(params.suitTimeoutSeconds);
     }
 
-    const phantom = childProcess.execFile(binPath, childArgs.concat(testPaths));
+    const phantom = childProcess.execFile(
+        binPath, 
+        childArgs.concat(testPaths), 
+        {maxBuffer: KILOBYTE * params.bufferSizeInKB || DEFAULT_BUFFER_SIZE}, 
+        (error, stdout, stderr) => {
+            if (error) {                        
+                emitter.emit('error', error);
+            }        
+        }
+    );
 
     readline.createInterface({
         input: phantom.stdout,
@@ -36,13 +47,14 @@ module.exports = function(testPaths, params = {}) {
     readline.createInterface({
         input: phantom.stderr,
         output: null
-    }).on('line', function(result) {
+    }).on('line', function(result) {        
         emitter.emit('error', result);
     });
 
-    phantom.on('close', function() {
+    phantom.on('close', function() {        
         emitter.emit('close');
-    })
+    });    
 
     return emitter;
 };
+
