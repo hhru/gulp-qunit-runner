@@ -47,14 +47,13 @@ module.exports = function(testPaths, params = {}) {
     readline.createInterface({
         input: phantom.stderr,
         output: null
-    }).on('line', function(result) {        
+    }).on('line', function(result) {
         emitter.emit('error', result);
     });
 
-    phantom.on('close', function() {        
+    phantom.on('close', function() {
         emitter.emit('close');
-    });    
+    });
 
     return emitter;
 };
-
