@@ -2,7 +2,7 @@ const fs = require('fs');
 
 module.exports = function(result) {
     if (!result || !result.includes('{')) {
-        return
+        return;
     }
     try {
         // Делаем JSON.parse, JSON.stringify чтобы убедиться, что пришел валидный JSON и его можно
