@@ -20,7 +20,9 @@
 
     // arg[0]: scriptName, args[1...]: arguments
     if (args.length < 2) {
-        console.error('Usage:\n  phantomjs [phantom arguments] runner.js [timeout-in-seconds] <url-of-your-qunit-testsuite> [<url-of-your-qunit-testsuite>...]');
+        console.error(
+            'Usage:\n  phantomjs [phantom arguments] runner.js [timeout-in-seconds] <url-of-your-qunit-testsuite> [<url-of-your-qunit-testsuite>...]'
+        );
         exit(1);
     }
 
@@ -28,62 +30,66 @@
 
     // this function will be executed inside phantomjs js-vm, so it mustn't depends on any entities from outer scope
     function addLogging() {
-        window.document.addEventListener('DOMContentLoaded', function() {
-            var currentTestAssertions = [];
+        window.document.addEventListener(
+            'DOMContentLoaded',
+            function() {
+                var currentTestAssertions = [];
 
-            QUnit.log(function(details) {
-                var response;
+                QUnit.log(function(details) {
+                    var response;
 
-                // Ignore passing assertions
-                if (details.result){
-                    return;
-                }
-
-                response = details.message ? details.message + ', ' : '';
-
-                if (details.expected) {
-                    response += 'expected: ' + details.expected + ', but was: ' + details.actual;
-                }
-
-                if (details.source) {
-                    response += '\n\t' + details.source.split('\n')[0];
-                }
-
-                currentTestAssertions.push('Failed assertion: ' + response);
-            });
-
-            QUnit.testDone(function(result) {
-                var i;
-                var len;
-                var name = '';
-
-                if (result.module) {
-                    name += result.module + ': ';
-                }
-                name += result.name;
-
-                text = '';
-                if (result.failed) {
-                    text += name;
-
-                    for (i = 0, len = currentTestAssertions.length; i < len; i++) {
-                        text += '\n\t' + currentTestAssertions[i];
+                    // Ignore passing assertions
+                    if (details.result) {
+                        return;
                     }
-                    console.log(JSON.stringify({"assertsFailed": text}));
-                }
 
-                currentTestAssertions.length = 0;
-            });
+                    response = details.message ? details.message + ', ' : '';
 
-            QUnit.done(function(result) {
-                if (typeof window.callPhantom === 'function') {
-                    window.callPhantom({
-                        'name': 'QUnit.done',
-                        'data': result
-                    });
-                }
-            });
-        }, false);
+                    if (details.expected) {
+                        response += 'expected: ' + details.expected + ', but was: ' + details.actual;
+                    }
+
+                    if (details.source) {
+                        response += '\n\t' + details.source.split('\n')[0];
+                    }
+
+                    currentTestAssertions.push('Failed assertion: ' + response);
+                });
+
+                QUnit.testDone(function(result) {
+                    var i;
+                    var len;
+                    var name = '';
+
+                    if (result.module) {
+                        name += result.module + ': ';
+                    }
+                    name += result.name;
+
+                    text = '';
+                    if (result.failed) {
+                        text += name;
+
+                        for (i = 0, len = currentTestAssertions.length; i < len; i++) {
+                            text += '\n\t' + currentTestAssertions[i];
+                        }
+                        console.log(JSON.stringify({ assertsFailed: text }));
+                    }
+
+                    currentTestAssertions.length = 0;
+                });
+
+                QUnit.done(function(result) {
+                    if (typeof window.callPhantom === 'function') {
+                        window.callPhantom({
+                            name: 'QUnit.done',
+                            data: result,
+                        });
+                    }
+                });
+            },
+            false
+        );
     }
 
     function open(url) {
@@ -94,7 +100,12 @@
 
         // Set a timeout on the test running, otherwise tests with async problems will hang forever
         abortTimer = setTimeout(function() {
-            console.error('The specified timeout of ' + timeout + ' seconds has expired while running tests on ' + getSuitName(url));
+            console.error(
+                'The specified timeout of ' +
+                    timeout +
+                    ' seconds has expired while running tests on ' +
+                    getSuitName(url)
+            );
             exit(1);
         }, timeout * 1000);
 
@@ -118,7 +129,7 @@
             // Cannot do this verification with the 'DOMContentLoaded' handler because it
             // will be too late to attach it if a page does not have any script tags.
             var qunitMissing = page.evaluate(function() {
-                return (typeof QUnit === 'undefined' || !QUnit);
+                return typeof QUnit === 'undefined' || !QUnit;
             });
             if (qunitMissing) {
                 console.error('The `QUnit` object is not present on this page.');
@@ -128,12 +139,12 @@
     }
 
     function getSuitName(path) {
-        return path.replace(/.*\/(.+)\.html$/, '$1')
+        return path.replace(/.*\/(.+)\.html$/, '$1');
     }
 
     // Route `console.log()` calls from within the Page context to the main Phantom context (i.e. current `this`)
     page.onConsoleMessage = function(msg) {
-        console.log(JSON.stringify({file: getSuitName(page.url), data: JSON.parse(msg)}));
+        console.log(JSON.stringify({ file: getSuitName(page.url), data: JSON.parse(msg) }));
     };
 
     page.onInitialized = function() {
@@ -154,7 +165,7 @@
             }
 
             if (failed) {
-                console.error('some tests were failed in '+ getSuitName(page.url));
+                console.error('some tests were failed in ' + getSuitName(page.url));
             }
 
             if (args.length === 0) {
@@ -163,12 +174,12 @@
 
             clearTimeout(abortTimer);
             // open next page with test suite
-            open(args.shift())
+            open(args.shift());
         }
     };
 
     // removing runner itself from args
-    args.shift()
+    args.shift();
 
     if (!isNaN(parseInt(args[0], 10))) {
         timeout = args.shift();

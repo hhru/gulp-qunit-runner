@@ -1,16 +1,16 @@
-const gutil = require('gulp-util');
+const log = require('fancy-log');
 const chalk = require('chalk');
 
 module.exports = function(result, verbose) {
     if (!result || !result.includes('{')) {
-        return
+        return;
     }
 
     try {
         const out = JSON.parse(result);
         if (out.data.assertsFailed) {
-            gutil.log(`${chalk.red('✖')} QUnit assertions failed in ${chalk.blue(out.file)}`);
-            gutil.log(`${chalk.red(out.data.assertsFailed)}`);
+            log(`${chalk.red('✖')} QUnit assertions failed in ${chalk.blue(out.file)}`);
+            log(`${chalk.red(out.data.assertsFailed)}`);
 
             return;
         }
@@ -24,11 +24,15 @@ module.exports = function(result, verbose) {
         const color = stats.failures > 0 ? chalk.red : chalk.green;
 
         if (stats.failures === 0) {
-            gutil.log(`${chalk.green('✔ ')} QUnit assertions all passed in ${chalk.blue(out.file)}`);
+            log(`${chalk.green('✔ ')} QUnit assertions all passed in ${chalk.blue(out.file)}`);
         }
 
-        gutil.log(`Took ${stats.duration} ms to run ${chalk.blue(stats.tests)} tests. ${color(stats.passes)} passed, ${stats.failures} failed.\n`);
+        log(
+            `Took ${stats.duration} ms to run ${chalk.blue(stats.tests)} tests. ${color(stats.passes)} passed, ${
+                stats.failures
+            } failed.\n`
+        );
     } catch (e) {
-        gutil.log(chalk.red(e));
+        log(chalk.red(e));
     }
 };
